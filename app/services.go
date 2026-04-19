@@ -14,7 +14,7 @@ func RPCClient() (*rpc.Client, error) {
 }
 
 func ToDTO(user *User) UserDTO {
-	return UserDTO{Username: user.Username, Password: user.Password, Uid: user.Uid}
+	return UserDTO{Username: user.Username, Password: user.Password, Uid: user.Uid, Roles: user.Roles}
 }
 
 func (r *RPCUserClient) GetUser(uid int) (UserDTO, error) {
@@ -39,9 +39,11 @@ func (r *RPCUserClient) DeleteUser(uid int) (int, error) {
 
 func (r *RPCUserClient) PatchUser(password string, uid int) error {
 	var user User
+	// Fetch existing user to get current data (like Username)
 	if err := r.Client.Call("UserHandler.Get", uid, &user); err != nil {
 		return err
 	}
+	// Update only the password
 	user.Password = password
 
 	return r.Client.Call("UserHandler.Update", &user, nil)

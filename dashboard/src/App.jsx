@@ -9,7 +9,7 @@ const UserTable = () => {
 
   const fetchAll = () => {
     setLoading(true);
-    fetch('http://localhost:3000/user/all')
+    fetch('http://localhost:3001/user/all')
       .then(res => res.ok ? res.json() : Promise.reject())
       .then(data => {
         setUsers(data.users || []);
@@ -34,7 +34,7 @@ const UserTable = () => {
     e.preventDefault();
     if (!searchId) { fetchAll(); return; }
     setLoading(true);
-    fetch(`http://localhost:3000/user/${searchId}`)
+    fetch(`http://localhost:3001/user/${searchId}`)
       .then(res => res.ok ? res.json() : Promise.reject("User not found"))
       .then(data => {
         setUsers(data.user ? [data.user] : []);
@@ -46,7 +46,7 @@ const UserTable = () => {
 
   const handleCreate = (e) => {
     e.preventDefault();
-    fetch('http://localhost:3000/user', {
+    fetch('http://localhost:3001/user', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newUser)
@@ -64,7 +64,7 @@ const UserTable = () => {
 
   const handleDelete = (uid) => {
     if (!window.confirm(`Permanently remove node #${uid}?`)) return;
-    fetch(`http://localhost:3000/user/${uid}`, { method: 'DELETE' })
+    fetch(`http://localhost:3001/user/${uid}`, { method: 'DELETE' })
       .then(res => res.ok ? fetchAll() : alert("Delete failed"))
       .catch(err => console.error(err));
   };
@@ -72,7 +72,7 @@ const UserTable = () => {
   const handleResetPassword = (uid) => {
     const newPassword = window.prompt(`Enter new password for node #${uid}:`);
     if (!newPassword) return;
-    fetch(`http://localhost:3000/user?uid=${uid}&password=${encodeURIComponent(newPassword)}`, {
+    fetch(`http://localhost:3001/user?uid=${uid}&password=${encodeURIComponent(newPassword)}`, {
       method: 'PATCH'
     })
       .then(res => res.ok ? fetchAll() : alert("Update failed"))
