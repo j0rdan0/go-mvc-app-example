@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -54,19 +53,11 @@ func MetricsMiddleware() gin.HandlerFunc {
 }
 
 func main() {
-	// Start prometheus metrics server on port 9091
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		log.Println("Starting prometheus metrics server on :9091")
-		if err := http.ListenAndServe(":9091", nil); err != nil {
-			log.Fatalf("prometheus metrics server failed: %s", err)
-		}
-	}()
-
 	router := gin.Default()
 
 	// for prometheus metrics
 	router.Use(MetricsMiddleware())
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// for CORS shit, to allow PATCH
 	router.Use(func(c *gin.Context) {
