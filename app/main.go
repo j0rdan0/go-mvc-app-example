@@ -2,16 +2,71 @@ package main
 
 import (
 	"log"
+	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
 	_ "github.com/go-sql-driver/mysql"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+var (
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"method", "path", "status"},
+	)
+
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "HTTP request duration in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "path"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(httpRequestDuration)
+}
+
+func MetricsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		c.Next()
+
+		duration := time.Since(start).Seconds()
+		status := strconv.Itoa(c.Writer.Status())
+
+		httpRequestsTotal.WithLabelValues(c.Request.Method, c.FullPath(), status).Inc()
+		httpRequestDuration.WithLabelValues(c.Request.Method, c.FullPath()).Observe(duration)
+	}
+}
+
 func main() {
+	// Start prometheus metrics server on port 9091
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		log.Println("Starting prometheus metrics server on :9091")
+		if err := http.ListenAndServe(":9091", nil); err != nil {
+			log.Fatalf("prometheus metrics server failed: %s", err)
+		}
+	}()
+
 	router := gin.Default()
+
+	// for prometheus metrics
+	router.Use(MetricsMiddleware())
 
 	// for CORS shit, to allow PATCH
 	router.Use(func(c *gin.Context) {
@@ -43,5 +98,6 @@ func main() {
 	router.PATCH("/user", Patch(&userService))
 	router.DELETE("/user/:uid", Delete(&userService))
 	router.POST("/user", Post(&userService))
-	router.Run(":3000")
+
+	router.Run(":3001")
 }
